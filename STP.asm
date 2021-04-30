@@ -256,15 +256,109 @@ INIT_ACIA       LDAA #$03               FC68    86  03
                 RTS                     FC72    39
 %
 %-----------------------------------------------------------------------------------
-% DISPLAYUPDATE OF ENTIRE BUFFER.ORIGIN  $FC80
-%DISP_BUFFERLDAA REG_1FC8096 61ANDA #$D0FC8284 D0STAA PORTFC84B7 40 00(DATA=,CLK=,RS=L,*CE=)ANDA #$C0FC8784 C0STAA PORTFC89B7 40 00(DATA=,CLK=,RS=L,*CE=L)STAA REG_1FC8C97 61EVACUATE CONTROL PATTERNLDX  BUFFER_START_1FC8ECE 00 00BUFFER HEAD ADDRESSL03LDAA X,$00FC91A6 00GET 1 CHARACTER FROM BUFFERSTX  BUFFER_POINTER2FC93DF 66EVACUATE BUFFER POINTERJSR  OUT_FONTFC95BD FC C0SEND 1 CHARACTER FONT TO LED JSR  KEY_SCANFC98BD FA 00KEY SCANLDX  BUFFER_POINTER2FC9BDE 66RETURN BUFFER POINTERINXFC9D08POINTER +1CPX  BUFFER_END_2FC9E8C 00 60BUFFER END?BNE  L03FCA126 EELDAA REG_1FCA396 61ORAA #$10FCA58A 10STAA PORTFCA7B7 40 00(DATA=,CLK=,RS=,*CE=H)ANDA #$B0FCAA84 B0STAA PORTFCACB7 40 00(DATA=,CLK=L,RS=,*CE=)STAA REG_1FCAF97 61RTSFCB139%
-%-----------------------------------------------------------------------------------
-% OUTPUT 1 CHARACTER FONT (5 BYTE)% INPUT PARAMETERACCA:ASCII CODE
+% DISPLAY UPDATE OF ENTIRE BUFFER
+                .ORIGIN  $FC80
 %
-%FONT POINTER:(ASCII CODE -$20) AND SHIFT LEFT 3BIT = (D4 TO D8) OF 16BIT
-%.ORIGIN  $FCC0
-%OUT_FONTSUBA #$20FCC080 20ASCII CODE -$20ANDA #$3FFCC284 3FCLEAR UPPER 2 BITLDAB FONT_DATA_HFCC4C6 FEFONT DATA HEAD ADDRESSASLAFCC648SHIFT LEFT 3 BITASLAFCC748ASLAFCC848ADCB #$00FCC9C9 00IF CARRY=1, UPPER 8BIT + 1STAB FONT_POINTER_HFCCBD7 68STAA FONT_POINTER_LFCCD97 69SET CODE TO FONT DATA POINITER 9 BITL51LDX  FONT_POINTERFCCFDE 68LDAB #$05FCD1C6 05ACCB: LOOP COUNTER FOR 5 BYTE FONTL04LDAA #$00FCD3A6 00EXTRACTION FONT DATANOPFCD501BRA  L52FCD620 09PATCH TO PREVENT IX BREAK ON SERIAL INPUTNOPFCD801NOPFCD901NOPFCDA01L53LDAB REG_2FCDBD6 62RETURN LOOP COUNTERDECBFCDD5ALOOP COUNTER -1BNE  L04FCDE26 F3RTSFCE039L52STAB REG_2FCE1D7 62EVACUATE LOOP COUNTERINXFCE308FONT POINTER +1STX  FONT_POINITERFCE4DF 68EVACUATE FONT POINTERJSR  OUT_FNT_SERLFCE6BD FC F0OUTPUT FONT BY SERIALLDX  FONT_POINTERFCE9DE 68RETURN FONT POINTERJMP  L53FCEB7E FC DB%%-----------------------------------------------------------------------------------% OUTPUT FONT 1 BYTE TO LED DISPLAY MODULE BY SERIAL% INPUT PARAMETERACCA:FONT DATA AND CONTROL REGISTER VALUEREG_1:CURRENT CONTROL LINE LEVEL%.ORIGIN  $FCF0%OUT_FNT_SERLLDAB #$08FCF0C6 08SET LOOP COUNTER (8BIT)STAA REG_0FCF297 60EVACUATE FONT DATALDAA REG_1FCF496 61RETURN CONTROL DATAANDA #$3FFCF684 3F(DATA=L,CLK=L,RS=,*CE=)STAA REG_1FCF897 61L05LDAA REG_0FCFA96 60RETURN FONT DATAANDA #$80FCAC84 80EXTRACTION D7ORAA REG_1FCFE9A 61SYNTHESIZE CONTROL DATASTAA PORTFD00B7 40 00OUTPUT TO LED MODULEORAA #$40FD038A 40(DATA=L,CLK=H,RS=,*CE=)STAA PORTFD05B7 40 00OUTPUT TO LED MODULEASL  REG_0FD0878 00 60SHIFT LEFT FONT DATADECB FD0B5ALOOP COUNTER -1BNE  L05FD0C26 ECLDAA ACIA_STATUSFD0EB6 A0 00SERIAL INPUT RECEIVED?LSRAFD1144BCC  L14FD1224 06IF NOT RECEIVED, EXITLDAA ACIA_STATUSFD14B6 A0 01JSR  OUT_1_CHAFD17BD F9 20IF RECEIVED, 1 CHARACTER PROCESSL14RTSFD1A39%%-------------------------------------------------------------------------------------% KEY SCAN ASCII CODE TABLE.ORIGIN  $FB00%ADDRESS(HEX)DATA(HEX)FB00FF 5A 58 43 56 42 4E 4DFB0841 53 44 46 47 48 4A 4BFB1051 57 45 52 54 59 55 49FB1831 32 33 34 35 36 37 38FB202C 2E 2F 20 4F 50 40 0DFB284C 3B 3A 0A 39 30 2D 08
-FB30FF FF FF FF FF FF FF FFFB3821 22 23 24 25 26 27 28FB403C 3E 3F FF FF FF FF FFFB48FF 2B 2A FF 29 5C 3D FF
+DISP_BUFFER     LDAA REG_1              FC80    96  61
+                ANDA #$D0               FC82    84  D0
+                STAA PORT               FC84    B7  40  00      (DATA=,CLK=,RS=L,*CE=)
+                ANDA #$C0               FC87    84  C0
+                STAA PORT               FC89    B7  40  00      (DATA=,CLK=,RS=L,*CE=L)
+                STAA REG_1              FC8C    97  61          EVACUATE CONTROL PATTERN
+                LDX  BUFFER_START_1     FC8E    CE  00  00      BUFFER HEAD ADDRESS
+L03             LDAA X,$00              FC91    A6  00          GET 1 CHARACTER FROM BUFFER
+                STX  BUFFER_POINTER2    FC93    DF  66          EVACUATE BUFFER POINTER
+                JSR  OUT_FONT           FC95    BD  FC  C0      SEND 1 CHARACTER FONT TO LED 
+                JSR  KEY_SCAN           FC98    BD  FA  00      KEY SCAN
+                LDX  BUFFER_POINTER2    FC9B    DE  66          RETURN BUFFER POINTER
+                INX                     FC9D    08              POINTER +1
+                CPX  BUFFER_END_2       FC9E    8C  00  60      BUFFER END?
+                BNE  L03                FCA1    26  EE
+                LDAA REG_1              FCA3    96  61
+                ORAA #$10               FCA5    8A  10
+                STAA PORT               FCA7    B7  40  00      (DATA=,CLK=,RS=,*CE=H)
+                ANDA #$B0               FCAA    84  B0
+                STAA PORT               FCAC    B7  40  00      (DATA=,CLK=L,RS=,*CE=)
+                STAA REG_1              FCAF    97  61
+                RTS                     FCB1    39
+%
+%-----------------------------------------------------------------------------------
+% OUTPUT 1 CHARACTER FONT (5 BYTE)
+% INPUT PARAMETER ACCA : ASCII CODE
+%
+% FONT POINTER : (ASCII CODE -$20) AND SHIFT LEFT 3BIT = (D4 TO D8) OF 16BIT
+%               .ORIGIN  $FCC0
+%
+OUT_FONT        SUBA #$20               FCC0    80  20          ASCII CODE -$20
+                ANDA #$3F               FCC2    84  3F          CLEAR UPPER 2 BIT
+                LDAB FONT_DATA_H        FCC4    C6  FE          FONT DATA HEAD ADDRESS
+                ASLA                    FCC6    48              SHIFT LEFT 3 BIT
+                ASLA                    FCC7    48
+                ASLA                    FCC8    48
+                ADCB #$00               FCC9    C9  00          IF CARRY=1, UPPER 8BIT + 1
+                STAB FONT_POINTER_H     FCCB    D7  68
+                STAA FONT_POINTER_L     FCCD    97  69          SET CODE TO FONT DATA POINITER 9 BIT
+L51             LDX  FONT_POINTER       FCCF    DE  68
+                LDAB #$05               FCD1    C6  05          ACCB: LOOP COUNTER FOR 5 BYTE FONT
+L04             LDAA #$00               FCD3    A6  00          EXTRACTION FONT DATA
+                NOP                     FCD5    01
+                BRA  L52                FCD6    20  09          PATCH TO PREVENT IX BREAK ON SERIAL INPUT
+                NOP                     FCD8    01  
+                NOP                     FCD9    01
+                NOP                     FCDA    01
+L53             LDAB REG_2              FCDB    D6  62          RETURN LOOP COUNTER
+                DECB                    FCDD    5A              LOOP COUNTER -1
+                BNE  L04                FCDE    26  F3 
+                RTS                     FCE0    39
+L52             STAB REG_2              FCE1    D7  62          EVACUATE LOOP COUNTER
+                INX                     FCE3    08              FONT POINTER +1
+                STX  FONT_POINITER      FCE4    DF  68          EVACUATE FONT POINTER
+                JSR  OUT_FNT_SERL       FCE6    BD  FC  F0      OUTPUT FONT BY SERIAL
+                LDX  FONT_POINTER       FCE9    DE  68          RETURN FONT POINTER
+                JMP  L53                FCEB    7E  FC  DB
+%
+%-----------------------------------------------------------------------------------
+% OUTPUT FONT 1 BYTE TO LED DISPLAY MODULE BY SERIAL
+% INPUT PARAMETER   ACCA: FONT DATA AND CONTROL REGISTER VALUE
+                    REG_1:CURRENT CONTROL LINE LEVEL
+%
+                .ORIGIN  $FCF0
+%
+OUT_FNT_SERL    LDAB #$08               FCF0    C6  08          SET LOOP COUNTER (8BIT)
+                STAA REG_0              FCF2    97  60          EVACUATE FONT DATA
+                LDAA REG_1              FCF4    96  61          RETURN CONTROL DATA
+                ANDA #$3F               FCF6    84  3F          (DATA=L,CLK=L,RS=,*CE=)
+                STAA REG_1              FCF8    97  61
+L05             LDAA REG_0              FCFA    96  60          RETURN FONT DATA
+                ANDA #$80               FCAC    84  80          EXTRACTION D7
+                ORAA REG_1              FCFE    9A  61          SYNTHESIZE CONTROL DATA
+                STAA PORT               FD00    B7  40  00      OUTPUT TO LED MODULE
+                ORAA #$40               FD03    8A  40          (DATA=L,CLK=H,RS=,*CE=)
+                STAA PORT               FD05    B7  40  00      OUTPUT TO LED MODULE
+                ASL  REG_0              FD08    78  00  60      SHIFT LEFT FONT DATA
+                DECB                    FD0B    5A              LOOP COUNTER -1
+                BNE  L05                FD0C    26  EC
+                LDAA ACIA_STATUS        FD0E    B6  A0  00      SERIAL INPUT RECEIVED?
+                LSRA                    FD11    44
+                BCC  L14                FD12    24  06          IF NOT RECEIVED, EXIT
+                LDAA ACIA_STATUS        FD14    B6  A0  01
+                JSR  OUT_1_CHA          FD17    BD  F9  20      IF RECEIVED, 1 CHARACTER PROCESS
+L14             RTS                     FD1A    39
+%
+%-------------------------------------------------------------------------------------
+% KEY SCAN ASCII CODE TABLE
+                .ORIGIN  $FB00
+%                               ADDRESS(HEX)    DATA(HEX)
+                                FB00            FF 5A 58 43 56 42 4E 4D
+                                FB08            41 53 44 46 47 48 4A 4B
+                                FB10            51 57 45 52 54 59 55 49
+                                FB18            31 32 33 34 35 36 37 38
+                                FB20            2C 2E 2F 20 4F 50 40 0D
+                                FB28            4C 3B 3A 0A 39 30 2D 08
+                                FB30            FF FF FF FF FF FF FF FF
+                                FB38            21 22 23 24 25 26 27 28
+                                FB40            3C 3E 3F FF FF FF FF FF
+                                FB48            FF 2B 2A FF 29 5C 3D FF                    
 %------------------------------------------------------------------------------------
 % FONT DATA TABLE
 % 5 X 7 DOT MATRIX CHARACTER FONT
